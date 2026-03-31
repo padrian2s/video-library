@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 1rem; }
+    h1 { font-size: 0.9rem; margin-bottom: 0.75rem; color: #f8fafc; }
+    label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem; }
+    input { width: 100%; padding: 0.4rem 0.5rem; border-radius: 4px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; margin-bottom: 0.75rem; }
+    .url-preview { font-size: 0.7rem; color: #60a5fa; word-break: break-all; margin-bottom: 0.75rem; background: #1e293b; padding: 0.4rem; border-radius: 4px; max-height: 3rem; overflow: hidden; }
+    button { width: 100%; padding: 0.5rem; border-radius: 6px; border: none; background: #3b82f6; color: #fff; font-size: 0.85rem; cursor: pointer; }
+    button:hover { background: #2563eb; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    .status { font-size: 0.75rem; margin-top: 0.5rem; text-align: center; min-height: 1.2em; }
+    .status.ok { color: #4ade80; }
+    .status.err { color: #f87171; }
+    .settings-link { display: block; text-align: center; font-size: 0.7rem; color: #64748b; margin-top: 0.5rem; cursor: pointer; }
+    .settings-link:hover { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <h1>URL Collector</h1>
+
+  <label>Server URL</label>
+  <input type="text" id="serverUrl" placeholder="http://localhost:3000">
+
+  <label>API Key</label>
+  <input type="text" id="apiKey" placeholder="your-api-key">
+
+  <label>Current Page</label>
+  <div class="url-preview" id="currentUrl">...</div>
+
+  <button id="sendBtn">Save URL</button>
+  <div class="status" id="status"></div>
+  <span class="settings-link" id="saveSettings">Save settings</span>
+
+  <script src="popup.js"></script>
+</body>
+</html>

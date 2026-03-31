@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Collector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: #f8fafc; }
+    h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #94a3b8; }
+
+    /* API Key selector */
+    .key-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+    .key-bar select, .key-bar input, .key-bar button {
+      padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #334155;
+      background: #1e293b; color: #e2e8f0; font-size: 0.875rem;
+    }
+    .key-bar button { cursor: pointer; background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .key-bar button:hover { background: #2563eb; }
+    .key-bar button.danger { background: #ef4444; border-color: #ef4444; }
+    .key-bar button.danger:hover { background: #dc2626; }
+    .key-bar .key-display { font-family: monospace; font-size: 0.8rem; color: #94a3b8; user-select: all; }
+
+    /* URL list */
+    .url-list { list-style: none; }
+    .url-item {
+      display: flex; align-items: center;
+      padding: 0.75rem 1rem; background: #1e293b; border-radius: 8px;
+      margin-bottom: 0.5rem; gap: 1rem;
+    }
+    .url-item:hover { background: #273549; }
+    .url-thumb {
+      flex-shrink: 0; width: 120px; height: 68px; border-radius: 6px;
+      object-fit: cover; background: #334155;
+    }
+    .url-thumb-placeholder {
+      flex-shrink: 0; width: 120px; height: 68px; border-radius: 6px;
+      background: #334155; display: flex; align-items: center; justify-content: center;
+      color: #475569; font-size: 0.7rem;
+    }
+    .url-info { flex: 1; min-width: 0; }
+    .url-title { font-size: 0.875rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .url-link { font-size: 0.75rem; color: #60a5fa; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .url-link:hover { text-decoration: underline; }
+    .url-date { font-size: 0.7rem; color: #64748b; white-space: nowrap; }
+    .url-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+    .btn-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0.25rem; }
+    .btn-del:hover { color: #f87171; }
+
+    .empty { text-align: center; color: #64748b; padding: 3rem 0; }
+    .stats { font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>URL Collector</h1>
+
+    <h2>API Key</h2>
+    <div class="key-bar">
+      <select id="keySelect"></select>
+      <input id="newKeyName" placeholder="New key name...">
+      <button onclick="createKey()">+ New Key</button>
+      <button class="danger" onclick="deleteKey()">Delete Key</button>
+    </div>
+    <div class="key-bar">
+      <span>Key:</span>
+      <span class="key-display" id="keyDisplay">—</span>
+    </div>
+
+    <h2>Saved URLs</h2>
+    <div class="stats" id="stats"></div>
+    <ul class="url-list" id="urlList"></ul>
+  </div>
+
+  <script>
+    const BASE = window.__BASE_PATH__ || "";
+    let currentKey = null;
+
+    async function loadKeys() {
+      const res = await fetch(`${BASE}/api/keys`);
+      const { keys } = await res.json();
+      const sel = document.getElementById("keySelect");
+      sel.innerHTML = "";
+      keys.forEach((k) => {
+        const opt = document.createElement("option");
+        opt.value = k.key;
+        opt.textContent = `${k.name} (#${k.id})`;
+        opt.dataset.id = k.id;
+        sel.appendChild(opt);
+      });
+      if (keys.length > 0) {
+        currentKey = keys[0].key;
+        document.getElementById("keyDisplay").textContent = currentKey;
+        loadUrls();
+      } else {
+        currentKey = null;
+        document.getElementById("keyDisplay").textContent = "—";
+        document.getElementById("urlList").innerHTML = '<li class="empty">No API keys. Create one above.</li>';
+      }
+    }
+
+    document.getElementById("keySelect").addEventListener("change", (e) => {
+      currentKey = e.target.value;
+      document.getElementById("keyDisplay").textContent = currentKey;
+      loadUrls();
+    });
+
+    async function loadUrls() {
+      if (!currentKey) return;
+      const res = await fetch(`${BASE}/api/urls?api_key=${encodeURIComponent(currentKey)}`);
+      const { urls, total } = await res.json();
+      document.getElementById("stats").textContent = `${total} URL${total !== 1 ? "s" : ""} saved`;
+      const list = document.getElementById("urlList");
+      if (urls.length === 0) {
+        list.innerHTML = '<li class="empty">No URLs saved yet. Use the Chrome extension to start collecting.</li>';
+        return;
+      }
+      list.innerHTML = urls
+        .map(
+          (u) => `
+        <li class="url-item">
+          ${
+            u.thumbnail
+              ? `<img class="url-thumb" src="${escHtml(u.thumbnail)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'url-thumb-placeholder\\'>No image</div>'">`
+              : '<div class="url-thumb-placeholder">No image</div>'
+          }
+          <div class="url-info">
+            <div class="url-title">${escHtml(u.title || "(no title)")}</div>
+            <a class="url-link" href="${escHtml(u.url)}" target="_blank">${escHtml(u.url)}</a>
+          </div>
+          <div class="url-actions">
+            <span class="url-date">${new Date(u.created_at + "Z").toLocaleString()}</span>
+            <button class="btn-del" title="Delete" onclick="deleteUrl(${u.id})">&#x2715;</button>
+          </div>
+        </li>`
+        )
+        .join("");
+    }
+
+    async function createKey() {
+      const name = document.getElementById("newKeyName").value.trim();
+      if (!name) return alert("Enter a name for the key");
+      await fetch(`${BASE}/api/keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      document.getElementById("newKeyName").value = "";
+      loadKeys();
+    }
+
+    async function deleteKey() {
+      const sel = document.getElementById("keySelect");
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt) return;
+      if (!confirm(`Delete key "${opt.textContent}" and all its URLs?`)) return;
+      await fetch(`${BASE}/api/keys/${opt.dataset.id}`, { method: "DELETE" });
+      loadKeys();
+    }
+
+    async function deleteUrl(id) {
+      await fetch(`${BASE}/api/urls/${id}`, {
+        method: "DELETE",
+        headers: { "x-api-key": currentKey },
+      });
+      loadUrls();
+    }
+
+    function escHtml(str) {
+      const d = document.createElement("div");
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    loadKeys();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "URL Collector",
+  "version": "1.0",
+  "description": "Send current tab URL to your URL Collector service",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icon48.png"
+    }
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
