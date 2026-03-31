@@ -74,9 +74,16 @@ sendBtn.addEventListener("click", async () => {
       body: JSON.stringify({ url: tabUrl, title: tabTitle, thumbnail: tabThumbnail || undefined }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 409) {
+      showStatus("Already saved", false);
+      chrome.storage.local.set({ serverUrl: server, apiKey: key });
+      return;
+    }
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw new Error(data.error || `HTTP ${res.status}`);
     }
 
     // Auto-save settings on successful send

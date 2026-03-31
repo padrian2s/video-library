@@ -122,11 +122,18 @@ function extractYouTubeThumbnail(url) {
 
 // --- API Routes ---
 
-// Save a URL
+// Save a URL (skip duplicates)
 router.post("/api/urls", authenticateApiKey, (req, res) => {
   const { url, title, thumbnail } = req.body;
   if (!url) {
     return res.status(400).json({ error: "url is required" });
+  }
+  // Check for duplicate URL under this API key
+  const existing = db
+    .prepare("SELECT id FROM urls WHERE url = ? AND api_key_id = ?")
+    .get(url, req.apiKeyRow.id);
+  if (existing) {
+    return res.status(409).json({ error: "URL already saved", id: existing.id });
   }
   // Use YouTube thumbnail if available, otherwise use what the client sent
   const thumb = extractYouTubeThumbnail(url) || thumbnail || null;
@@ -136,18 +143,32 @@ router.post("/api/urls", authenticateApiKey, (req, res) => {
   res.json({ id: result.lastInsertRowid, url, title, thumbnail: thumb });
 });
 
-// List URLs
+// List URLs (with optional search)
 router.get("/api/urls", authenticateApiKey, (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 100, 500);
   const offset = parseInt(req.query.offset) || 0;
-  const rows = db
-    .prepare(
-      "SELECT id, url, title, thumbnail, created_at FROM urls WHERE api_key_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
-    )
-    .all(req.apiKeyRow.id, limit, offset);
-  const total = db
-    .prepare("SELECT COUNT(*) as count FROM urls WHERE api_key_id = ?")
-    .get(req.apiKeyRow.id);
+  const search = req.query.q ? `%${req.query.q}%` : null;
+
+  let rows, total;
+  if (search) {
+    rows = db
+      .prepare(
+        "SELECT id, url, title, thumbnail, created_at FROM urls WHERE api_key_id = ? AND (title LIKE ? OR url LIKE ?) ORDER BY created_at DESC LIMIT ? OFFSET ?"
+      )
+      .all(req.apiKeyRow.id, search, search, limit, offset);
+    total = db
+      .prepare("SELECT COUNT(*) as count FROM urls WHERE api_key_id = ? AND (title LIKE ? OR url LIKE ?)")
+      .get(req.apiKeyRow.id, search, search);
+  } else {
+    rows = db
+      .prepare(
+        "SELECT id, url, title, thumbnail, created_at FROM urls WHERE api_key_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+      )
+      .all(req.apiKeyRow.id, limit, offset);
+    total = db
+      .prepare("SELECT COUNT(*) as count FROM urls WHERE api_key_id = ?")
+      .get(req.apiKeyRow.id);
+  }
   res.json({ urls: rows, total: total.count });
 });
 

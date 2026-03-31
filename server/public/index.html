@@ -3,81 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Collector</title>
+  <title>Video Library</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
-    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: #f8fafc; }
-    h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #94a3b8; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
 
-    /* API Key selector */
-    .key-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    h1 { font-size: 1.4rem; color: #f8fafc; }
+    .header-right { display: flex; gap: 0.5rem; align-items: center; }
+
+    /* Settings toggle */
+    .settings-toggle { background: none; border: 1px solid #334155; color: #94a3b8; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .settings-toggle:hover { border-color: #475569; color: #e2e8f0; }
+    .settings-panel { display: none; background: #1e293b; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+    .settings-panel.open { display: block; }
+    .settings-panel h2 { font-size: 0.9rem; color: #94a3b8; margin-bottom: 0.75rem; }
+    .key-bar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
     .key-bar select, .key-bar input, .key-bar button {
-      padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #334155;
-      background: #1e293b; color: #e2e8f0; font-size: 0.875rem;
+      padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #334155;
+      background: #0f172a; color: #e2e8f0; font-size: 0.8rem;
     }
     .key-bar button { cursor: pointer; background: #3b82f6; border-color: #3b82f6; color: #fff; }
     .key-bar button:hover { background: #2563eb; }
     .key-bar button.danger { background: #ef4444; border-color: #ef4444; }
     .key-bar button.danger:hover { background: #dc2626; }
-    .key-bar .key-display { font-family: monospace; font-size: 0.8rem; color: #94a3b8; user-select: all; }
+    .key-display { font-family: monospace; font-size: 0.75rem; color: #64748b; user-select: all; }
 
-    /* URL list */
-    .url-list { list-style: none; }
-    .url-item {
-      display: flex; align-items: center;
-      padding: 0.75rem 1rem; background: #1e293b; border-radius: 8px;
-      margin-bottom: 0.5rem; gap: 1rem;
+    /* Search */
+    .search-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .search-bar input {
+      flex: 1; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; color: #e2e8f0; font-size: 0.9rem; outline: none;
     }
-    .url-item:hover { background: #273549; }
-    .url-thumb {
-      flex-shrink: 0; width: 120px; height: 68px; border-radius: 6px;
-      object-fit: cover; background: #334155;
-    }
-    .url-thumb-placeholder {
-      flex-shrink: 0; width: 120px; height: 68px; border-radius: 6px;
-      background: #334155; display: flex; align-items: center; justify-content: center;
-      color: #475569; font-size: 0.7rem;
-    }
-    .url-info { flex: 1; min-width: 0; }
-    .url-title { font-size: 0.875rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .url-link { font-size: 0.75rem; color: #60a5fa; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-    .url-link:hover { text-decoration: underline; }
-    .url-date { font-size: 0.7rem; color: #64748b; white-space: nowrap; }
-    .url-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
-    .btn-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0.25rem; }
-    .btn-del:hover { color: #f87171; }
+    .search-bar input:focus { border-color: #3b82f6; }
+    .search-bar input::placeholder { color: #475569; }
 
-    .empty { text-align: center; color: #64748b; padding: 3rem 0; }
-    .stats { font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
+    /* Stats */
+    .stats { font-size: 0.8rem; color: #64748b; margin-bottom: 1rem; }
+
+    /* Grid */
+    .url-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .url-card {
+      background: #1e293b; border-radius: 10px; overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s; position: relative;
+    }
+    .url-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .url-card a.card-link { text-decoration: none; color: inherit; display: block; }
+    .card-thumb {
+      width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
+      background: #334155;
+    }
+    .card-thumb-placeholder {
+      width: 100%; aspect-ratio: 16/9; display: flex; align-items: center;
+      justify-content: center; background: #334155; color: #475569; font-size: 0.8rem;
+    }
+    .card-body { padding: 0.75rem; }
+    .card-title {
+      font-size: 0.85rem; color: #f8fafc; font-weight: 500;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; line-height: 1.4; margin-bottom: 0.35rem;
+    }
+    .card-url {
+      font-size: 0.7rem; color: #60a5fa; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 0.75rem 0.6rem;
+    }
+    .card-date { font-size: 0.65rem; color: #475569; }
+    .btn-del {
+      background: none; border: none; color: #64748b; cursor: pointer;
+      font-size: 0.85rem; padding: 0.2rem 0.4rem; border-radius: 4px;
+    }
+    .btn-del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+    .empty { text-align: center; color: #64748b; padding: 4rem 0; grid-column: 1 / -1; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>URL Collector</h1>
-
-    <h2>API Key</h2>
-    <div class="key-bar">
-      <select id="keySelect"></select>
-      <input id="newKeyName" placeholder="New key name...">
-      <button onclick="createKey()">+ New Key</button>
-      <button class="danger" onclick="deleteKey()">Delete Key</button>
-    </div>
-    <div class="key-bar">
-      <span>Key:</span>
-      <span class="key-display" id="keyDisplay">—</span>
+    <div class="header">
+      <h1>Video Library</h1>
+      <div class="header-right">
+        <span class="stats" id="stats"></span>
+        <button class="settings-toggle" onclick="toggleSettings()">Settings</button>
+      </div>
     </div>
 
-    <h2>Saved URLs</h2>
-    <div class="stats" id="stats"></div>
-    <ul class="url-list" id="urlList"></ul>
+    <div class="settings-panel" id="settingsPanel">
+      <h2>API Keys</h2>
+      <div class="key-bar">
+        <select id="keySelect"></select>
+        <input id="newKeyName" placeholder="New key name...">
+        <button onclick="createKey()">+ New</button>
+        <button class="danger" onclick="deleteKey()">Delete</button>
+      </div>
+      <span class="key-display" id="keyDisplay"></span>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by title or URL...">
+    </div>
+
+    <div class="url-grid" id="urlGrid"></div>
   </div>
 
   <script>
     const BASE = window.__BASE_PATH__ || "";
     let currentKey = null;
+    let searchTimeout = null;
 
+    // --- Search ---
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => loadUrls(), 300);
+    });
+
+    // --- Settings ---
+    function toggleSettings() {
+      document.getElementById("settingsPanel").classList.toggle("open");
+    }
+
+    // --- Keys ---
     async function loadKeys() {
       const res = await fetch(`${BASE}/api/keys`);
       const { keys } = await res.json();
@@ -96,8 +150,8 @@
         loadUrls();
       } else {
         currentKey = null;
-        document.getElementById("keyDisplay").textContent = "—";
-        document.getElementById("urlList").innerHTML = '<li class="empty">No API keys. Create one above.</li>';
+        document.getElementById("keyDisplay").textContent = "";
+        document.getElementById("urlGrid").innerHTML = '<div class="empty">No API keys. Open Settings to create one.</div>';
       }
     }
 
@@ -107,36 +161,38 @@
       loadUrls();
     });
 
+    // --- URLs ---
     async function loadUrls() {
       if (!currentKey) return;
-      const res = await fetch(`${BASE}/api/urls?api_key=${encodeURIComponent(currentKey)}`);
+      const q = document.getElementById("searchInput").value.trim();
+      const params = new URLSearchParams({ api_key: currentKey });
+      if (q) params.set("q", q);
+      const res = await fetch(`${BASE}/api/urls?${params}`);
       const { urls, total } = await res.json();
-      document.getElementById("stats").textContent = `${total} URL${total !== 1 ? "s" : ""} saved`;
-      const list = document.getElementById("urlList");
+      document.getElementById("stats").textContent = `${total} video${total !== 1 ? "s" : ""}`;
+      const grid = document.getElementById("urlGrid");
       if (urls.length === 0) {
-        list.innerHTML = '<li class="empty">No URLs saved yet. Use the Chrome extension to start collecting.</li>';
+        grid.innerHTML = `<div class="empty">${q ? "No results found." : "No URLs saved yet. Use the Chrome extension to start collecting."}</div>`;
         return;
       }
-      list.innerHTML = urls
-        .map(
-          (u) => `
-        <li class="url-item">
-          ${
-            u.thumbnail
-              ? `<img class="url-thumb" src="${escHtml(u.thumbnail)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'url-thumb-placeholder\\'>No image</div>'">`
-              : '<div class="url-thumb-placeholder">No image</div>'
-          }
-          <div class="url-info">
-            <div class="url-title">${escHtml(u.title || "(no title)")}</div>
-            <a class="url-link" href="${escHtml(u.url)}" target="_blank">${escHtml(u.url)}</a>
-          </div>
-          <div class="url-actions">
-            <span class="url-date">${new Date(u.created_at + "Z").toLocaleString()}</span>
+      grid.innerHTML = urls.map((u) => `
+        <div class="url-card">
+          <a class="card-link" href="${escHtml(u.url)}" target="_blank">
+            ${u.thumbnail
+              ? `<img class="card-thumb" src="${escHtml(u.thumbnail)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-placeholder\\'>No thumbnail</div>'">`
+              : '<div class="card-thumb-placeholder">No thumbnail</div>'
+            }
+            <div class="card-body">
+              <div class="card-title">${escHtml(u.title || "(no title)")}</div>
+              <div class="card-url">${escHtml(u.url)}</div>
+            </div>
+          </a>
+          <div class="card-footer">
+            <span class="card-date">${new Date(u.created_at + "Z").toLocaleDateString()}</span>
             <button class="btn-del" title="Delete" onclick="deleteUrl(${u.id})">&#x2715;</button>
           </div>
-        </li>`
-        )
-        .join("");
+        </div>`
+      ).join("");
     }
 
     async function createKey() {
